@@ -1,0 +1,291 @@
+<!-- stocks.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Stock Prices</title>
+    <style>
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            animation-name: modalopen;
+            animation-duration: 0.4s;
+        }
+
+        @keyframes modalopen {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .close {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Buy button style */
+        .buy-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+    </style>
+
+<script>
+    var socket = new WebSocket('ws://' + window.location.host + '/ws/position-stocks/');
+socket.onmessage = function (event) {
+    var stockData = JSON.parse(event.data);
+    // console.log("S",stockData);
+    updateStockProfit(stockData);
+};
+
+function updateStockProfit(stockData) {
+    // Iterate over stock data and update the UI with live profit
+    for (var symbol in stockData) {
+        if (stockData.hasOwnProperty(symbol)) {
+            var profit = stockData[symbol]['current_profit'];
+            var ltp = stockData[symbol]['ltp'];
+            // console.log("da",profit)
+            // Update the UI element corresponding to the symbol with live profit
+            document.getElementById(symbol + '-profit').textContent = profit;
+            document.getElementById(symbol + '-ltp').textContent = ltp;
+        }
+    }
+}
+
+</script>
+
+    <script>
+        var socket = new WebSocket('ws://' + window.location.host + '/ws/stocks/');
+        socket.onmessage = function (event) {
+            var stockData = JSON.parse(event.data);
+            updateStockPrices(stockData);
+        };
+
+
+        
+        function updateStockPrices(stockData) {
+            // Clear previous data
+            var stockTable = document.getElementById('stock-table');
+            stockTable.innerHTML = '';
+
+            // Iterate over stock data and create table rows
+            for (var company in stockData) {
+                if (stockData.hasOwnProperty(company)) {
+                    var row = document.createElement('tr');
+                    var nameCell = document.createElement('td');
+                    nameCell.textContent = company;
+                    var priceCell = document.createElement('td');
+                    priceCell.textContent = stockData[company]['price'];
+                    var changeCell = document.createElement('td');
+                    changeCell.textContent = stockData[company]['change'];
+                    var buyButtonCell = document.createElement('td');
+                    var buyButton = document.createElement('button');
+                    buyButton.textContent = 'Buy';
+                    buyButton.setAttribute('data-symbol', stockData[company]['symbol']);
+                    buyButton.setAttribute('data-name', company);
+                    buyButton.setAttribute('data-price', stockData[company]['price']);
+                    buyButton.setAttribute('onclick', 'openBuyModal(this.getAttribute("data-symbol"), this.getAttribute("data-name"), this.getAttribute("data-price"))');
+                    buyButton.className = 'buy-button';
+                    buyButtonCell.appendChild(buyButton);
+                    row.appendChild(nameCell);
+                    row.appendChild(priceCell);
+                    row.appendChild(changeCell);
+                    row.appendChild(buyButtonCell);
+
+                    stockTable.appendChild(row);
+                }
+            }
+        }
+
+        function openBuyModal(symbol, name, price) {
+    var modal = document.getElementById('buyModal');
+    var modalSymbol = document.getElementById('buyModalSymbol');
+    var modalName = document.getElementById('buyModalName');
+    var modalPrice = document.getElementById('buyModalPrice');
+    var symbolInput = document.getElementById('symbolInput');
+    var nameInput = document.getElementById('nameInput');
+    var priceInput = document.getElementById('priceInput');
+    var closeButton = document.getElementById('closeButton');
+    
+    modal.style.display = 'block';
+    modalSymbol.textContent = symbol;
+    modalName.textContent = name;
+    modalPrice.textContent = price;
+    symbolInput.value = symbol;
+    nameInput.value = name;
+    priceInput.value = price;
+
+    closeButton.onclick = function () {
+        modal.style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+    </script>
+
+<script>
+    function openSellModal(symbol) {
+    var modal = document.getElementById('sellModal');
+    var modalSymbol = document.getElementById('sellModalSymbol');
+    var modalAvgPrice = document.getElementById('sellModalAvgPrice');
+    var symbolInput = document.getElementById('sellSymbolInput');
+    var avgPriceInput = document.getElementById('sellAvgPriceInput');
+    var closeButton = document.getElementById('sellCloseButton');
+    var ltp = document.getElementById(symbol + '-ltp').textContent;
+    // console.log(ltp);
+    modal.style.display = 'block';
+    modalSymbol.textContent = symbol;
+    modalAvgPrice.textContent = ltp;
+    symbolInput.value = symbol;
+    avgPriceInput.value = ltp;
+
+    closeButton.onclick = function () {
+        modal.style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+</script>
+
+</head>
+<body>
+    <h1>Real-Time Stock Prices</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Company</th>
+                <th>Price</th>
+                <th>Change (%)</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="stock-table">
+            <!-- Table rows will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <!-- Buy Modal -->
+    <!-- Buy Modal -->
+<div id="buyModal" class="modal">
+    <div class="modal-content">
+        <span id="closeButton" class="close">&times;</span>
+        <h2>Buy Stock</h2>
+        <form id="buyForm" action="/stocks/buy-order/" method="post">
+            {% csrf_token %}
+            <p><strong>Symbol:</strong> <span id="buyModalSymbol"></span></p>
+            <input type="hidden" id="symbolInput" name="symbol">
+            <p><strong>Name:</strong> <span id="buyModalName"></span></p>
+            <input type="hidden" id="nameInput" name="name">
+            <p><strong>Price:</strong> <span id="buyModalPrice"></span></p>
+            <input type="hidden" id="priceInput" name="price">
+            <!-- Add input fields for quantity and other necessary details -->
+            <label for="quantity">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" required>
+            <br>
+            <button id="confirmBuyButton" class="buy-button">Confirm Buy</button>
+        </form>
+    </div>
+</div>
+
+
+<h1>Position</h1>
+
+<h4>Total invested</h4>
+<h5>{{total_invested}}</h5>
+
+<table>
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Average Price</th>
+            <th>Quantity</th>
+            <th>Current Profit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for position in position %}
+            <tr>
+                <td>{{ position.stock_symbol }}</td>
+                <td>{{ position.average_price }}</td>
+                <td>{{ position.quantity }}</td>
+                <td id="{{ position.stock_symbol }}-profit">Loading...</td>
+                <td id="{{ position.stock_symbol }}-ltp">Loading...</td>
+                <td><button class="sell-button" onclick="openSellModal('{{ position.stock_symbol }}')">Sell</button></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+
+<!-- Sell Modal -->
+<div id="sellModal" class="modal">
+    <div class="modal-content">
+        <span id="sellCloseButton" class="close">&times;</span>
+        <h2>Sell Stock</h2>
+        <form id="sellForm" action="/stocks/sell-order/" method="post">
+            {% csrf_token %}
+            <p><strong>Symbol:</strong> <span id="sellModalSymbol"></span></p>
+            <input type="hidden" id="sellSymbolInput" name="symbol">
+            <p><strong>Price:</strong> <span id="sellModalAvgPrice"></span></p>
+            <input type="hidden" id="sellAvgPriceInput" name="price">
+            <!-- Add input fields for quantity and other necessary details -->
+            <label for="sellQuantity">Quantity:</label>
+            <input type="number" id="sellQuantity" name="quantity" required>
+            <br>
+            <button id="confirmSellButton" class="sell-button">Confirm Sell</button>
+        </form>
+    </div>
+</div>
+
+
+</body>
+</html>

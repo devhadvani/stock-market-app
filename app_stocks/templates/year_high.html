@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stocks at 52-Week High</title>
+</head>
+<body>
+    <h1>Stocks at 52-Week High</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Current Price</th>
+                <th>52-Week High</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in stocks %}
+            <tr>
+                <td>{{ stock.symbol }}</td>
+                <td>{{ stock.current_price }}</td>
+                <td>{{ stock.52_week_high }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

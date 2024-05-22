@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Stock Prices</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* Modal styles */
+
+        body{
+            background-color: #090909;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(27, 27, 27, 0.87);
+        }
+        .modal-content {
+            background-color: #2e2e2e;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            animation-name: modalopen;
+            animation-duration: 0.4s;
+        }
+        @keyframes modalopen {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .close {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover, .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .buy-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .main{
+            display: flex;
+            gap:80px;
+        }
+        table{
+            border: 0;
+        }
+        .sell-button{
+            background-color: red;
+            color:white;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+    </style>
+  <script>
+    var eventSource = new EventSource('sse/stock-updates/');
+    // console.log(eventSource);
+
+    eventSource.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        console.log(data.stock_data)
+        updateStockPrices(data.stock_data,data.total_profit);
+        // updateStockPrices(data.total_profit);
+        updateStockProfit(data.position_data);
+    };
+
+    function updateStockPrices(stockData, total_profit) {
+        var stockTable = document.getElementById('stock-table');
+        var profit = document.getElementById('profitid');
+        var totalProfitDecimal = parseFloat(total_profit);
+        profit.textContent = total_profit;
+        profit.style.color = totalProfitDecimal >= 0 ? 'green' : 'red';
+
+        stockTable.innerHTML = '';
+        for (var company in stockData) {
+            if (stockData.hasOwnProperty(company)) {
+                var row = document.createElement('tr');
+
+                var logoCell = document.createElement('td');
+                // var logoImg = document.createElement('img');
+                // logoImg.src = stockData[company]['logo_url'];
+                // logoImg.alt = company + " Logo";
+                // logoImg.style.width = '50px'; // Adjust the width as needed
+                // logoCell.appendChild(logoImg);
+
+                var nameCell = document.createElement('td');
+                nameCell.textContent = company;
+
+                var priceCell = document.createElement('td');
+                priceCell.textContent = stockData[company]['price'];
+
+                var changeCell = document.createElement('td');
+                var changeDecimal = parseFloat(stockData[company]['change']);
+                changeCell.textContent = stockData[company]['change'];
+                changeCell.style.color = changeDecimal >= 0 ? 'green' : 'red';
+
+                var buyButtonCell = document.createElement('td');
+                var buyButton = document.createElement('button');
+                buyButton.textContent = 'Buy';
+                buyButton.setAttribute('data-symbol', stockData[company]['symbol']);
+                buyButton.setAttribute('data-name', company);
+                buyButton.setAttribute('data-price', stockData[company]['price']);
+                buyButton.setAttribute('onclick', 'openBuyModal(this.getAttribute("data-symbol"), this.getAttribute("data-name"), this.getAttribute("data-price"))');
+                buyButton.className = 'buy-button';
+                buyButtonCell.appendChild(buyButton);
+
+                row.appendChild(logoCell);
+                row.appendChild(nameCell);
+                row.appendChild(priceCell);
+                row.appendChild(changeCell);
+                row.appendChild(buyButtonCell);
+                stockTable.appendChild(row);
+            }
+        }
+    
+    } function updateStockProfit(positionData) {
+            var positionDiv = document.getElementById('position-data');
+            positionDiv.innerHTML = ''; // Clear previous position data
+            for (var symbol in positionData) {
+                if (positionData.hasOwnProperty(symbol)) {
+                    var profitDecimal = parseFloat(positionData[symbol]['current_profit']);
+                    var ltp = positionData[symbol]['ltp'];
+                    var quantity = positionData[symbol]['quantity'];
+                    var positionItem = document.createElement('div');
+                    positionItem.innerHTML = '<p>Symbol: ' + symbol + '</p><p>Profit: <span style="color:' + (profitDecimal >= 0 ? 'green' : 'red') + '">' + positionData[symbol]['current_profit'] + '</span></p><p>LTP: ' + ltp + '</p><p>Quantity: ' + quantity + '</p>';
+                    var sellButton = document.createElement('button');
+                    sellButton.textContent = 'Sell';
+                    sellButton.setAttribute('data-symbol', symbol);
+                    sellButton.setAttribute('data-quantity', quantity);
+                    sellButton.setAttribute('data-ltp', ltp);
+                    sellButton.setAttribute('onclick', 'openSellModal(this.getAttribute("data-symbol"), this.getAttribute("data-quantity"), this.getAttribute("data-ltp"))');
+                    sellButton.className = 'sell-button';
+                    positionItem.appendChild(sellButton);
+                    positionDiv.appendChild(positionItem);
+                }
+            }
+        }
+
+    function openBuyModal(symbol, name, price) {
+        var modal = document.getElementById('buyModal');
+        var modalSymbol = document.getElementById('buyModalSymbol');
+        var modalName = document.getElementById('buyModalName');
+        var modalPrice = document.getElementById('buyModalPrice');
+        var symbolInput = document.getElementById('symbolInput');
+        var nameInput = document.getElementById('nameInput');
+        var priceInput = document.getElementById('priceInput');
+        var closeButton = document.getElementById('closeButton');
+
+        modal.style.display = 'block';
+        modalSymbol.textContent = symbol;
+        modalName.textContent = name;
+        modalPrice.textContent = price;
+        symbolInput.value = symbol;
+        nameInput.value = name;
+        priceInput.value = price;
+
+        closeButton.onclick = function () {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    }
+
+    function openSellModal(symbol, quantity, ltp) {
+        var modal = document.getElementById('sellModal');
+        var modalSymbol = document.getElementById('sellModalSymbol');
+        var modalAvgPrice = document.getElementById('sellModalAvgPrice');
+        var symbolInput = document.getElementById('sellSymbolInput');
+        var quantityInput = document.getElementById('sellQuantity');
+        var avgPriceInput = document.getElementById('sellAvgPriceInput');
+        var closeButton = document.getElementById('sellCloseButton');
+        // console.log("dfd",symbol)
+        // console.log("jhgj",quantity)
+        // console.log("hg",ltp)
+
+        modal.style.display = 'block';
+        modalSymbol.textContent = symbol;
+        modalAvgPrice.textContent = ltp;
+        symbolInput.value = symbol;
+        quantityInput.value = quantity;
+        avgPriceInput.value = ltp;
+        // print()
+
+        closeButton.onclick = function () {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    }
+
+</script>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('buyForm').onsubmit = function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+
+        fetch("{% url 'buy-stock' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // alert(data.message);
+                document.getElementById('buyModal').style.display = 'none';
+                // Optionally refresh data or update UI
+            } else {
+                // alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    };
+
+    document.getElementById('sellForm').onsubmit = function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+
+        fetch("{% url 'sell-stock' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // alert(data.message);
+                document.getElementById('sellModal').style.display = 'none';
+                // Optionally refresh data or update UI
+            } else {
+                // alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    };
+});
+
+</script>
+
+
+
+</head>
+<body>
+    <h1>Real-Time Stock Prices</h1>
+
+    <div class="main">
+        <div class="left">
+    <table id="stock-table" border="0">
+    </table></div>
+    <div class="right">
+    <h3> position</h3>
+    <h4>Invested:{{total_invested}}</h4>
+   <h4>Current p&l <span id="profitid"></span></h4>
+
+    <div id="position-data">
+</div>
+    </div>
+</div>
+    <!-- Buy Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeButton">&times;</span>
+            <h2>Buy Stock</h2>
+            <p>Symbol: <span id="buyModalSymbol"></span></p>
+            <p>Name: <span id="buyModalName"></span></p>
+            <p>Price: <span id="buyModalPrice"></span></p>
+            <form id="buyForm">
+                {% csrf_token %}
+                <input type="hidden" name="symbol" id="symbolInput">
+                <input type="hidden" name="name" id="nameInput">
+                <input type="hidden" name="price" id="priceInput">
+                <label for="quantity">Quantity:</label>
+                <input type="number" id="quantity" name="quantity" required>
+                <button type="submit">Buy</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sell Modal -->
+    <div id="sellModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="sellCloseButton">&times;</span>
+            <h2>Sell Stock</h2>
+            <p>Symbol: <span id="sellModalSymbol"></span></p>
+            <p>Average Price: <span id="sellModalAvgPrice"></span></p>
+         
+            <form id="sellForm">
+                {% csrf_token %}
+                <input  name="symbol" id="sellSymbolInput">
+                <input  name="price" id="sellAvgPriceInput">
+                <label for="sellQuantity">Quantity:</label>
+                <input type="number" id="sellQuantity" name="quantity" required>
+                <button type="submit">Sell</button>
+       </form>
+        </div>
+    </div>
+
+
+</body>
+</html>
