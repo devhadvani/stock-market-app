@@ -234,10 +234,11 @@ async def sse_stock_updates(request):
 
 @login_required
 def stock_view(request):
-    position = Position.objects.filter(portfolio=1)
+    position = Position.objects.filter(portfolio__user=request.user)
     total_invested = 0
     # print(total_invested)
     for positions in position:
+        print(positions.quantity , positions.average_price)
         total_invested += positions.quantity * positions.average_price
     return render(request, 'stock.html',{"total_invested":total_invested})
 
