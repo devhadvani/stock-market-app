@@ -13,5 +13,6 @@ urlpatterns = [
     path('sse/stock_view/sse/stock-updates/', sse_stock_updates, name='sse_stock_updates'),
     path('sse/stock_view/', stock_view, name='stock_view'),
     path('year_high_stocks/', year_high_stocks, name='year_high_stocks'),
+    path('search/', search_stock, name='search_stock'),
     # path('get-historical-data/', get_historical_data, name='get-historical-data'),
 ]

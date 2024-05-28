@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Search</title>
+</head>
+<body>
+    <h1>Search for a Stock</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Search</button>
+    </form>
+
+    {% if stock_data %}
+        <h2>Stock Details</h2>
+        <p><strong>Symbol:</strong> {{ stock_data.symbol }}</p>
+        <p><strong>Name:</strong> {{ stock_data.name }}</p>
+        <p><strong>Price:</strong> ${{ stock_data.price }}</p>
+        <p><strong>Change:</strong> {{ stock_data.change }}</p>
+        <p><strong>Market Cap:</strong> {{ stock_data.market_cap }}</p>
+        <p><strong>Volume:</strong> {{ stock_data.volume }}</p>
+        <p><strong>Dividend Yield:</strong> {{ stock_data.dividend_yield }}</p>
+    {% elif error %}
+        <p>{{ error }}</p>
+    {% endif %}
+</body>
+</html>

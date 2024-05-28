@@ -243,6 +243,53 @@ def stock_view(request):
     return render(request, 'stock.html',{"total_invested":total_invested})
 
 
+
+from .forms import StockSearchForm
+
+def search_stock(request):
+    if request.method == "POST":
+        form = StockSearchForm(request.POST)
+        if form.is_valid():
+            symbol = form.cleaned_data['symbol']
+            stock = yf.Ticker(symbol)
+            hist = stock.history(period='2d')
+            
+            if hist.empty:
+                context = {
+                    'form': form,
+                    'error': 'Stock symbol not found.'
+                }
+            else:
+                prev_close = hist.iloc[-2]['Close']
+                current_close = hist.iloc[-1]['Close']
+                percent_change = ((current_close - prev_close) / prev_close) * 100
+                info = stock.info
+                stock_data = {
+                    'symbol': symbol,
+                    'name': info.get('longName', 'N/A'),
+                    'price': f"{current_close:.2f}",
+                    'change': f"{percent_change:.2f}%",
+                    'market_cap': info.get('marketCap', 'N/A'),
+                    'volume': info.get('volume', 'N/A'),
+                    'dividend_yield': info.get('dividendYield', 'N/A')
+                }
+                context = {
+                    'form': form,
+                    'stock_data': stock_data
+                }
+        else:
+            context = {
+                'form': form,
+                'error': 'Invalid input.'
+            }
+    else:
+        form = StockSearchForm()
+        context = {'form': form}
+
+    return render(request, 'search_stock.html', context)
+
+
+
 # from datetime import datetime, timedelta
 
 # def get_historical_data(request):
